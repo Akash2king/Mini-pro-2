@@ -1,10 +1,13 @@
 from flask import Flask, request, render_template, url_for
-import logging, os, time
+import logging, os, time, base64, requests
 from gtts import gTTS
-import base64
-import requests
+from flask_cors import CORS
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all origins
 
 IMAGE_PATH = os.path.join(app.root_path, "static/test.jpg")
 AUDIO_PATH = os.path.join(app.root_path, "static/audio.mp3")
@@ -44,8 +47,9 @@ def upload_image():
         return render_template("image_show.html", description=DESCRIPTION, timestamp=str(time.time()))
 
 def get_image_description(base64_image):
-    API_KEY = "AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"
+    API_KEY = os.getenv("GEMINI_API_KEY") or "YOUR_BACKUP_API_KEY"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={API_KEY}"
+    
     payload = {
         "contents": [{
             "parts": [
@@ -57,16 +61,16 @@ def get_image_description(base64_image):
                 },
                 {
                     "text":  '''
-        "I am a blind individual, and I would like you to assist me in understanding images by providing detailed, vivid, and sensory-rich descriptions. When I upload an image, please describe it as though you are guiding me through the scene in a natural and immersive way. Your description should include:
+"I am a blind individual, and I would like you to assist me in understanding images by providing detailed, vivid, and sensory-rich descriptions. When I upload an image, please describe it as though you are guiding me through the scene in a natural and immersive way. Your description should include:
 
-        1. **Spatial Layout**: Describe the arrangement of objects, people, or elements in the scene, including approximate distances between them (e.g., 'a table is about three feet in front of you, with a chair to its left, two feet away').
-        2. **Visual Details**: Mention colors, shapes, sizes, and textures (e.g., 'a smooth, round red apple on a wooden table').
-        3. **Sensory Cues**: Include any implied sounds, smells, or tactile sensations that might be associated with the scene (e.g., 'the sound of leaves rustling in the wind' or 'the warm glow of sunlight filtering through a window').
-        4. **Context and Atmosphere**: Provide context about the setting, mood, or activity taking place (e.g., 'a bustling city street with people walking briskly and cars honking in the distance').
-        5. **Key Focal Points**: Highlight the most important or prominent elements in the image and their relationships to one another.
+1. Spatial Layout: Describe the arrangement of objects, people, or elements in the scene, including approximate distances.
+2. Visual Details: Mention colors, shapes, sizes, and textures.
+3. Sensory Cues: Include implied sounds, smells, or tactile sensations.
+4. Context and Atmosphere: Provide context about the setting, mood, or activity.
+5. Key Focal Points: Highlight the most important or prominent elements and their relationships.
 
-        Your goal is to help me visualize the scene as if I were experiencing it myself, with a focus on clarity, detail, and natural flow. Avoid phrases like 'let me explain' or 'in the image'; simply describe the scene directly and vividly."
-        '''
+Your goal is to help me visualize the scene as if I were experiencing it myself, with clarity, detail, and natural flow. Avoid phrases like 'let me explain' or 'in the image'; simply describe the scene directly and vividly."
+'''
                 }
             ]
         }]
