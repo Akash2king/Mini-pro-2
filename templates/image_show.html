@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Image Viewer</title>
+    <meta http-equiv="refresh" content="5">
+</head>
+<body>
+    <h1>Latest Image from ESP32</h1>
+    <img src="{{ url_for('static', filename='test.jpg') }}?t={{ timestamp }}" alt="Latest Image" width="500">
+    <h2>Description</h2>
+    <p>{{ description }}</p>
+    <h2>Audio Description</h2>
+    <audio controls autoplay>
+        <source src="{{ url_for('static', filename='audio.mp3') }}?t={{ timestamp }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+</body>
+</html>
