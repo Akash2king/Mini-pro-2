@@ -1,18 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ESP32 Image Viewer</title>
-    <meta http-equiv="refresh" content="5">
+  <meta charset="UTF-8">
+  <title>Image Description</title>
+  <script>
+    const lastSeen = localStorage.getItem("lastImageTimestamp");
+    const currentTimestamp = "{{ timestamp }}";
+
+    if (lastSeen !== currentTimestamp) {
+      localStorage.setItem("lastImageTimestamp", currentTimestamp);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1 sec delay to allow audio generation if needed
+    }
+  </script>
 </head>
 <body>
-    <h1>Latest Image from ESP32</h1>
-    <img src="{{ url_for('static', filename='test.jpg') }}?t={{ timestamp }}" alt="Latest Image" width="500">
-    <h2>Description</h2>
-    <p>{{ description }}</p>
-    <h2>Audio Description</h2>
-    <audio controls autoplay>
-        <source src="{{ url_for('static', filename='audio.mp3') }}?t={{ timestamp }}" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+  <h2>Latest Uploaded Image</h2>
+  <img src="{{ url_for('static', filename='test.jpg') }}" alt="Uploaded Image" width="400"><br><br>
+
+  <h3>Description:</h3>
+  <p>{{ description }}</p>
+
+  <audio controls autoplay>
+    <source src="{{ url_for('static', filename='audio.mp3') }}" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
 </body>
 </html>

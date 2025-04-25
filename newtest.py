@@ -1,17 +1,14 @@
 from flask import Flask, request, render_template, url_for
 import logging, os, time, base64, requests
 from gtts import gTTS
-from flask_cors import CORS
-from dotenv import load_dotenv
-
-load_dotenv()
+from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all origins
 
 IMAGE_PATH = os.path.join(app.root_path, "static/test.jpg")
 AUDIO_PATH = os.path.join(app.root_path, "static/audio.mp3")
 DESCRIPTION = ""
+LAST_IMAGE_TIMESTAMP = ""
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,7 +19,7 @@ def log_request_info():
 
 @app.route("/upload-image", methods=["GET", "POST"])
 def upload_image():
-    global DESCRIPTION
+    global DESCRIPTION, LAST_IMAGE_TIMESTAMP
 
     if request.method == "POST":
         image_raw_bytes = request.get_data()
@@ -30,24 +27,26 @@ def upload_image():
             f.write(image_raw_bytes)
         print("Image saved")
 
-        # Call Gemini Flash for description
         with open(IMAGE_PATH, "rb") as img_file:
             img_base64 = base64.b64encode(img_file.read()).decode('utf-8')
         
         gemini_response = get_image_description(img_base64)
         DESCRIPTION = gemini_response or "Could not generate description."
 
-        # Generate TTS
         tts = gTTS(text=DESCRIPTION, lang='en')
         tts.save(AUDIO_PATH)
+
+        LAST_IMAGE_TIMESTAMP = str(datetime.utcnow().timestamp())
 
         return "Image and description processed."
 
     elif request.method == "GET":
-        return render_template("image_show.html", description=DESCRIPTION, timestamp=str(time.time()))
+        return render_template("image_show.html", 
+                               description=DESCRIPTION, 
+                               timestamp=LAST_IMAGE_TIMESTAMP)
 
 def get_image_description(base64_image):
-    API_KEY ="AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"
+    API_KEY = "AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"  # Replace this with your valid API Key
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={API_KEY}"
     
     payload = {
@@ -60,16 +59,9 @@ def get_image_description(base64_image):
                     }
                 },
                 {
-                    "text":  '''
-"I am a blind individual, and I would like you to assist me in understanding images by providing detailed, vivid, and sensory-rich descriptions. When I upload an image, please describe it as though you are guiding me through the scene in a natural and immersive way. Your description should include:
-
-1. Spatial Layout: Describe the arrangement of objects, people, or elements in the scene, including approximate distances.
-2. Visual Details: Mention colors, shapes, sizes, and textures.
-3. Sensory Cues: Include implied sounds, smells, or tactile sensations.
-4. Context and Atmosphere: Provide context about the setting, mood, or activity.
-5. Key Focal Points: Highlight the most important or prominent elements and their relationships.
-
-Your goal is to help me visualize the scene as if I were experiencing it myself, with clarity, detail, and natural flow. Avoid phrases like 'let me explain' or 'in the image'; simply describe the scene directly and vividly."
+                    "text": '''
+I am a blind individual, and I would like you to assist me in understanding images by providing detailed, vivid, and sensory-rich descriptions. 
+Describe spatial layout, visual details, sensory cues, context, and key focal points as if I were experiencing the scene naturally.
 '''
                 }
             ]
@@ -81,8 +73,11 @@ Your goal is to help me visualize the scene as if I were experiencing it myself,
         res = requests.post(endpoint, json=payload, headers=headers)
         return res.json()["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
-        print(f"Gemini error: {e}")
+        print("Gemini error:", e)
+        print("Full response:", res.text if 'res' in locals() else "No response")
         return None
 
 if __name__ == '__main__':
+    from flask_cors import CORS
+    CORS(app)  # Allow all origins
     app.run(host='0.0.0.0', port=5000)
