@@ -47,7 +47,7 @@ def upload_image():
         return render_template("image_show.html", description=DESCRIPTION, timestamp=str(time.time()))
 
 def get_image_description(base64_image):
-    API_KEY = os.getenv("GEMINI_API_KEY") or "YOUR_BACKUP_API_KEY"
+    API_KEY ="AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={API_KEY}"
     
     payload = {
