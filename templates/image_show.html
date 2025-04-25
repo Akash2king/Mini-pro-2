@@ -7,23 +7,23 @@
     const lastSeen = localStorage.getItem("lastImageTimestamp");
     const currentTimestamp = "{{ timestamp }}";
 
-    if (lastSeen !== currentTimestamp) {
+    if (lastSeen !== currentTimestamp && currentTimestamp !== "") {
       localStorage.setItem("lastImageTimestamp", currentTimestamp);
       setTimeout(() => {
         window.location.reload();
-      }, 1000); // 1 sec delay to allow audio generation if needed
+      }, 2000); // Delay slightly to allow audio load
     }
   </script>
 </head>
 <body>
   <h2>Latest Uploaded Image</h2>
-  <img src="{{ url_for('static', filename='test.jpg') }}" alt="Uploaded Image" width="400"><br><br>
+  <img src="{{ url_for('static', filename='test.jpg') }}?t={{ timestamp }}" width="400"><br><br>
 
   <h3>Description:</h3>
   <p>{{ description }}</p>
 
   <audio controls autoplay>
-    <source src="{{ url_for('static', filename='audio.mp3') }}" type="audio/mpeg">
+    <source src="{{ url_for('static', filename='audio.mp3') }}?t={{ timestamp }}" type="audio/mpeg">
     Your browser does not support the audio element.
   </audio>
 </body>

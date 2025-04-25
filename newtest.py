@@ -3,7 +3,10 @@ import logging, os, time, base64, requests
 from gtts import gTTS
 from datetime import datetime
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 IMAGE_PATH = os.path.join(app.root_path, "static/test.jpg")
 AUDIO_PATH = os.path.join(app.root_path, "static/audio.mp3")
@@ -29,26 +32,26 @@ def upload_image():
 
         with open(IMAGE_PATH, "rb") as img_file:
             img_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-        
+
         gemini_response = get_image_description(img_base64)
         DESCRIPTION = gemini_response or "Could not generate description."
 
         tts = gTTS(text=DESCRIPTION, lang='en')
         tts.save(AUDIO_PATH)
 
-        LAST_IMAGE_TIMESTAMP = str(datetime.utcnow().timestamp())
+        LAST_IMAGE_TIMESTAMP = str(int(time.time()))
 
         return "Image and description processed."
 
     elif request.method == "GET":
-        return render_template("image_show.html", 
-                               description=DESCRIPTION, 
+        return render_template("image_show.html",
+                               description=DESCRIPTION,
                                timestamp=LAST_IMAGE_TIMESTAMP)
 
 def get_image_description(base64_image):
-    API_KEY = "AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"  # Replace this with your valid API Key
+    API_KEY = "AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"  # Replace this
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={API_KEY}"
-    
+
     payload = {
         "contents": [{
             "parts": [
@@ -60,8 +63,7 @@ def get_image_description(base64_image):
                 },
                 {
                     "text": '''
-I am a blind individual, and I would like you to assist me in understanding images by providing detailed, vivid, and sensory-rich descriptions. 
-Describe spatial layout, visual details, sensory cues, context, and key focal points as if I were experiencing the scene naturally.
+Describe this scene vividly for a blind individual. Include spatial layout, colors, sounds, and emotions. Don't say "in the image". Just describe naturally.
 '''
                 }
             ]
@@ -74,10 +76,7 @@ Describe spatial layout, visual details, sensory cues, context, and key focal po
         return res.json()["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         print("Gemini error:", e)
-        print("Full response:", res.text if 'res' in locals() else "No response")
         return None
 
 if __name__ == '__main__':
-    from flask_cors import CORS
-    CORS(app)  # Allow all origins
     app.run(host='0.0.0.0', port=5000)
