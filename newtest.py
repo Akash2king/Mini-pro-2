@@ -48,7 +48,7 @@ def upload_image():
 
 def get_image_description(base64_image):
     API_KEY ="AIzaSyB4GgtY8Tkf6KeCx9CbkDykvSviN_bkmAg"
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={API_KEY}"
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={API_KEY}"
     
     payload = {
         "contents": [{
