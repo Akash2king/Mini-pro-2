@@ -70,7 +70,7 @@ def get_latest_id():
 LATEST_DISTANCE = None
 LATEST_GPS = {"lat": None, "lon": None}
 
-@app.route("/ultrasonic-data", methods=["POST"])
+@app.route("/ultrasonic", methods=["POST"])
 def ultrasonic_data():
     global LATEST_DISTANCE
     data = request.json
