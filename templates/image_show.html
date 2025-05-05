@@ -1,30 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Image Description</title>
-  <script>
-    const lastSeen = localStorage.getItem("lastImageTimestamp");
-    const currentTimestamp = "{{ timestamp }}";
-
-    if (lastSeen !== currentTimestamp && currentTimestamp !== "") {
-      localStorage.setItem("lastImageTimestamp", currentTimestamp);
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000); // Delay slightly to allow audio load
-    }
-  </script>
+    <title>ESP32 Image Viewer</title>
+    <meta charset="UTF-8">
+    <style>
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+    <!-- Leaflet CSS + JS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-  <h2>Latest Uploaded Image</h2>
-  <img src="{{ url_for('static', filename='test.jpg') }}?t={{ timestamp }}" width="400"><br><br>
+    <h1>Latest Image from ESP32 Logesh</h1>
+    <img id="img" src="" alt="Image not loaded yet" width="500">
 
-  <h3>Description:</h3>
-  <p>{{ description }}</p>
+    <h2>Description</h2>
+    <div id="desc"><em>{{description}}</em></div>
 
-  <audio controls autoplay>
-    <source src="{{ url_for('static', filename='audio.mp3') }}?t={{ timestamp }}" type="audio/mpeg">
-    Your browser does not support the audio element.
-  </audio>
+    <h2>Audio Description</h2>
+    <audio id="audio" controls></audio>
+
+    <h2>GPS Location</h2>
+    <div id="map"></div>
+
+    <h2>Ultrasonic Distance</h2>
+    <div id="distance">Loading...</div>
+
+    <script>
+        let latestId = null;
+        let userInteracted = false;
+
+        document.addEventListener('click', () => {
+            userInteracted = true;
+        });
+
+        // Leaflet map
+        let map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        let marker = null;
+
+        async function checkForNewImage() {
+            try {
+                const res = await fetch('/latest-id');
+                const data = await res.json();
+                if (data.id && data.id !== latestId) {
+                    console.log("[INFO] New image detected:", data.id);
+                    latestId = data.id;
+                    updateContent(latestId);
+                }
+            } catch (err) {
+                console.error("[ERROR] Checking new image failed:", err);
+            }
+        }
+
+        function updateContent(id) {
+            document.getElementById("img").src = `/static/${id}.jpg?t=${Date.now()}`;
+
+            fetch(`/static/${id}.mp3?t=${Date.now()}`).then(res => {
+                if (res.ok) {
+                    let audio = document.getElementById("audio");
+                    audio.src = res.url;
+
+                    if (userInteracted) {
+                        audio.play().then(() => {
+                            console.log("[INFO] Playing audio");
+                        }).catch(err => {
+                            console.warn("[WARN] Autoplay blocked:", err);
+                        });
+                    }
+                } else {
+                    console.warn("[WARN] Audio not ready yet.");
+                }
+            });
+
+            fetch('/view')
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    document.getElementById("desc").innerHTML = doc.querySelector("#desc").innerHTML;
+                });
+        }
+
+        async function fetchSensorData() {
+            try {
+                const res = await fetch('/latest-sensor-data');
+                const data = await res.json();
+
+                // Update distance
+                if (data.distance !== null) {
+                    document.getElementById("distance").innerText = data.distance + " cm";
+                }
+
+                // Update GPS
+                const lat = parseFloat(data.gps.lat);
+                const lon = parseFloat(data.gps.lon);
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    map.setView([lat, lon], 15);
+                    if (marker) {
+                        marker.setLatLng([lat, lon]);
+                    } else {
+                        marker = L.marker([lat, lon]).addTo(map).bindPopup("ESP32 Location").openPopup();
+                    }
+                }
+            } catch (err) {
+                console.error("[ERROR] Fetching sensor data failed:", err);
+            }
+        }
+
+        setInterval(checkForNewImage, 3000);
+        setInterval(fetchSensorData, 5000);
+    </script>
 </body>
 </html>
